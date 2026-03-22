@@ -12,7 +12,7 @@ import OutfitStack from './components/OutfitStack';
 import LookbookModal from './components/LookbookModal';
 import { generateVirtualTryOnImage, generatePoseVariation } from './services/geminiService';
 import { OutfitLayer, WardrobeItem, LookbookEntry } from './types';
-import { ChevronDownIcon, ChevronUpIcon, Share2Icon, PlusIcon } from './components/icons';
+import { ChevronDownIcon, ChevronUpIcon, Share2Icon, PlusIcon, DownloadIcon } from './components/icons';
 import { defaultWardrobe } from './wardrobe';
 import Footer from './components/Footer';
 import { getFriendlyErrorMessage } from './lib/utils';
@@ -152,7 +152,7 @@ const App: React.FC = () => {
         }
         return [...prev, garmentInfo];
       });
-    } catch (err) {
+    } catch (err: any) {
       setError(getFriendlyErrorMessage(err, 'Failed to apply garment'));
     } finally {
       setIsLoading(false);
@@ -186,6 +186,16 @@ const App: React.FC = () => {
   const handleRemoveFromLookbook = (id: string) => {
     setLookbook(prev => prev.filter(entry => entry.id !== id));
   };
+
+  const handleDownloadImage = () => {
+    if (!displayImageUrl) return;
+    const link = document.createElement('a');
+    link.href = displayImageUrl;
+    link.download = `nayok-style-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   const handlePoseSelect = useCallback(async (newIndex: number) => {
     if (isLoading || outfitHistory.length === 0 || newIndex === currentPoseIndex) return;
@@ -213,14 +223,14 @@ const App: React.FC = () => {
     setCurrentPoseIndex(newIndex);
 
     try {
-      const newImageUrl = await generatePoseVariation(baseImageForPoseChange, poseInstruction);
+      const newImageUrl = await generatePoseVariation(baseImageForPoseChange as string, poseInstruction);
       setOutfitHistory(prevHistory => {
         const newHistory = [...prevHistory];
         const updatedLayer = newHistory[currentOutfitIndex];
         updatedLayer.poseImages[poseInstruction] = newImageUrl;
         return newHistory;
       });
-    } catch (err) {
+    } catch (err: any) {
       setError(getFriendlyErrorMessage(err, 'Failed to change pose'));
       // Revert pose index on failure
       setCurrentPoseIndex(prevPoseIndex);
@@ -285,12 +295,12 @@ const App: React.FC = () => {
                   availablePoseKeys={availablePoseKeys}
                 />
                 
-                {/* Save to Lookbook Button */}
+                {/* Action Buttons */}
                 {!isLoading && displayImageUrl && (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30"
+                    className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 flex gap-3"
                   >
                     <button
                       onClick={handleSaveToLookbook}
@@ -298,6 +308,13 @@ const App: React.FC = () => {
                     >
                       <PlusIcon className="w-4 h-4" />
                       Save to Lookbook
+                    </button>
+                    <button
+                      onClick={handleDownloadImage}
+                      className="flex items-center gap-2 px-6 py-3 bg-white text-stone-900 border border-stone-200 rounded-full shadow-xl hover:bg-stone-50 transition-all font-bold text-sm tracking-wide"
+                    >
+                      <DownloadIcon className="w-4 h-4" />
+                      Save Image
                     </button>
                   </motion.div>
                 )}
